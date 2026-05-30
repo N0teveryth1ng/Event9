@@ -1305,6 +1305,10 @@ function _ariaWeatherIcon(temp, condition) {
   });
 }
 
+function stripMd(s) {
+  return (s||'').replace(/\*\*?([^*]*)\*\*?/g,'$1').replace(/`([^`]*)`/g,'$1').trim();
+}
+
 function applyARIAMapAction(mapAction) {
   if (!mapAction) return;
   clearARIAMap();
@@ -1319,10 +1323,11 @@ function applyARIAMapAction(mapAction) {
   // Place markers
   (mapAction.markers || []).forEach(m => {
     if (m.lat == null || m.lon == null) return;
-    const icon = _ariaMarkerIcon(m.label || '', m.color || '#00ff66');
-    const mk = L.marker([m.lat, m.lon], {icon, title: m.label || ''});
+    const lbl = stripMd(m.label);
+    const icon = _ariaMarkerIcon(lbl, m.color || '#00ff66');
+    const mk = L.marker([m.lat, m.lon], {icon, title: lbl});
     if (m.info) {
-      mk.bindPopup(`<strong style="color:${m.color||'#00ff66'}">${m.label||''}</strong><br>${m.info}`,
+      mk.bindPopup(`<strong style="color:${m.color||'#00ff66'}">${lbl}</strong><br>${m.info}`,
         {maxWidth:240});
     }
     mk.addTo(map);
@@ -1361,19 +1366,20 @@ function applyARIAMapAction(mapAction) {
     const line = L.polyline(geodesicPoints, {
       color: col, weight: r.width || 2, opacity: 0.88,
     });
-    if (r.label) line.bindTooltip(r.label, {sticky: true});
+    const rlbl = stripMd(r.label);
+    if (rlbl) line.bindTooltip(rlbl, {sticky: true});
     line.addTo(map);
     _ariaMapLayers.push(line);
 
     // Label at midpoint
-    if (r.label && geodesicPoints.length > 0) {
+    if (rlbl && geodesicPoints.length > 0) {
       const midPt = geodesicPoints[Math.floor(geodesicPoints.length / 2)];
       const lblIcon = L.divIcon({
         className:'',
         html:`<div style="background:rgba(7,10,14,0.9);border:1px solid ${col};
           border-radius:2px;padding:1px 7px;font-family:'JetBrains Mono',monospace;
           font-size:.54rem;color:${col};white-space:nowrap;
-          box-shadow:0 0 6px ${col}33;">${r.label}</div>`,
+          box-shadow:0 0 6px ${col}33;">${rlbl}</div>`,
         iconSize:[0,0], iconAnchor:[0,0],
       });
       _ariaMapLayers.push(L.marker(midPt, {icon:lblIcon, interactive:false}).addTo(map));
@@ -1416,7 +1422,7 @@ function applyARIAMapAction(mapAction) {
           dashArray: '5 3',
         },
       });
-      if (s.label) poly.bindTooltip(s.label, {sticky: true});
+      if (s.label) poly.bindTooltip(stripMd(s.label), {sticky: true});
       poly.addTo(map);
       _ariaMapLayers.push(poly);
       // Center marker
@@ -1434,8 +1440,9 @@ function applyARIAMapAction(mapAction) {
   (mapAction.weather_markers || []).forEach(w => {
     if (w.lat == null || w.lon == null) return;
     const icon = _ariaWeatherIcon(w.temp || '?°', w.condition || '');
-    const mk = L.marker([w.lat, w.lon], {icon, title: w.label || ''});
-    mk.bindTooltip(`${w.label||''} · ${w.temp||''} · ${w.condition||''}`, {sticky:true});
+    const wlbl = stripMd(w.label);
+    const mk = L.marker([w.lat, w.lon], {icon, title: wlbl});
+    mk.bindTooltip(`${wlbl} · ${w.temp||''} · ${w.condition||''}`, {sticky:true});
     mk.addTo(map);
     _ariaMapLayers.push(mk);
   });
@@ -1451,7 +1458,7 @@ function applyARIAMapAction(mapAction) {
       weight: 1.5,
       dashArray: '6 4',
     });
-    if (c.label) circle.bindTooltip(c.label, {sticky:true});
+    if (c.label) circle.bindTooltip(stripMd(c.label), {sticky:true});
     circle.addTo(map);
     _ariaMapLayers.push(circle);
   });

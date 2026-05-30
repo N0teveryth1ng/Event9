@@ -121,6 +121,7 @@ _ARIA_SYSTEM = (
     "- conflict zones → markers at key positions, circles for controlled areas\n"
     "- map is null ONLY for abstract/conceptual questions with no geographic component\n"
     "- reply: under 200 words, **bold** key entities. No speculation beyond known data.\n"
+    "- label fields in map objects must be plain text only — NO markdown, NO asterisks, NO backticks.\n"
     "CRITICAL for routes: Use minimum 10 waypoints per route. Follow real geography — "
     "go through actual mountain passes, river valleys, coastal paths. "
     "Use accurate real-world lat/lon for every named city/waypoint."
