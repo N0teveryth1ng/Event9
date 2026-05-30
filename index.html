@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>EventNine — Global Intelligence Platform</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─── ROOT ──────────────────────────────────────────────────────── */
+:root {
+  --bg:#070a0e; --fg:#e0e8ff; --card:#0b121f;
+  --primary:#00ff66; --primary-fg:#070a0e;
+  --secondary:#8b9dc3; --muted:#3d4a5c; --muted-fg:#6b7280;
+  --accent:#1f293d; --warning:#ffb800; --danger:#ff3333;
+  --border:#1f293d; --r:2px; --r2:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);
+  font-family:'Inter','Segoe UI',sans-serif;font-size:13px;}
+
+/* ─── E9 LOADER ─────────────────────────────────────────────────── */
+#e9-loader{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(7,10,14,0.97);backdrop-filter:blur(4px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .5s ease;}
+#e9-loader.hidden{opacity:0;pointer-events:none;}
+.e9-ring{position:relative;width:128px;height:128px;margin-bottom:28px;}
+.e9-ro{
+  position:absolute;inset:0;border-radius:50%;
+  border:2px solid transparent;
+  border-top-color:var(--primary);border-right-color:var(--primary);
+  animation:sfwd 3s linear infinite;}
+.e9-ri{
+  position:absolute;inset:8px;border-radius:50%;
+  border:1px solid transparent;
+  border-bottom-color:var(--primary);border-left-color:var(--primary);
+  animation:srev 4s linear infinite;}
+.e9-logo{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;}
+.e9-e9{font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:700;
+  color:var(--primary);letter-spacing:4px;
+  text-shadow:0 0 20px rgba(0,255,102,.5);}
+.e9-name{font-size:.54rem;font-family:'JetBrains Mono',monospace;
+  color:var(--muted-fg);letter-spacing:4px;margin-top:4px;}
+.e9-pd{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:7px;height:7px;border-radius:50%;background:var(--primary);
+  animation:pulseg 1.2s ease-in-out infinite;}
+.e9-msg{font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:var(--fg);letter-spacing:4px;margin-bottom:8px;}
+.e9-dots{display:flex;gap:5px;}
+.e9-dots span{width:4px;height:4px;border-radius:50%;background:var(--primary);
+  animation:pulseg 1.2s ease-in-out infinite;}
+.e9-dots span:nth-child(2){animation-delay:.2s;}
+.e9-dots span:nth-child(3){animation-delay:.4s;}
+.e9-sys{position:absolute;bottom:28px;left:0;right:0;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted-fg);}
+.e9-sys em{color:var(--primary);font-style:normal;}
+
+/* ─── APP SHELL ─────────────────────────────────────────────────── */
+#app{width:100vw;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ─── HEADER ────────────────────────────────────────────────────── */
+#hdr{
+  height:48px;flex-shrink:0;
+  background:rgba(11,18,31,0.85);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;gap:10px;}
+.hdr-l{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+.hdr-logo{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.hdr-radio{
+  width:16px;height:16px;flex-shrink:0;color:var(--primary);
+  animation:e9glow 2.5s ease-in-out infinite;}
+.hdr-brand{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;
+  color:var(--fg);letter-spacing:1px;white-space:nowrap;}
+.hdr-sep{color:var(--muted-fg);font-size:.8rem;flex-shrink:0;}
+.hdr-srch{flex:1;min-width:0;}
+#q-input{width:100%;background:transparent;border:none;outline:none;
+  font-size:.72rem;font-family:'Inter',sans-serif;color:var(--muted-fg);}
+#q-input::placeholder{color:var(--muted-fg);}
+#q-input:focus{color:var(--fg);}
+.hdr-r{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.btn-go{
+  padding:4px 14px;border-radius:var(--r);
+  background:var(--primary);color:var(--primary-fg);border:none;
+  font-size:.65rem;font-family:'JetBrains Mono',monospace;
+  font-weight:700;cursor:pointer;transition:opacity .15s;letter-spacing:.3px;}
+.btn-go:hover{opacity:.85;}
+#ws-dot{
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid var(--muted-fg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;color:var(--muted-fg);font-weight:900;
+  transition:all .3s;cursor:default;flex-shrink:0;}
+#ws-dot.live{border-color:var(--primary);color:var(--primary);
+  box-shadow:0 0 8px rgba(0,255,102,.35);}
+
+/* ─── MAIN 3-COL ────────────────────────────────────────────────── */
+#main{flex:1;overflow:hidden;display:flex;gap:2px;padding:2px;background:var(--bg);}
+
+/* ─── LEFT PANEL ────────────────────────────────────────────────── */
+#lp{
+  width:240px;flex-shrink:0;
+  background:rgba(11,18,31,0.82);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(31,41,61,0.6);border-radius:var(--r);
+  display:flex;flex-direction:column;overflow:hidden;}
+
+/* entity detail */
+#ed{border-bottom:1px solid var(--border);padding:8px 10px;
+  display:none;flex-direction:column;flex-shrink:0;
+  background:rgba(31,41,61,0.22);}
+.ed-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;}
+.ed-name{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;line-height:1.2;}
+.ed-type{font-size:.54rem;color:var(--muted-fg);letter-spacing:.8px;margin-top:2px;text-transform:uppercase;}
+.ed-x{background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--muted-fg);cursor:pointer;
+  font-size:.6rem;padding:2px 6px;transition:all .15s;line-height:1.2;}
+.ed-x:hover{color:var(--danger);border-color:rgba(255,51,51,.3);}
+.ed-rows{display:flex;flex-direction:column;gap:0;}
+.dr2{display:flex;justify-content:space-between;align-items:center;
+  padding:2px 0;font-size:.6rem;
+  border-bottom:1px solid rgba(255,255,255,.03);}
+.dr2:last-child{border-bottom:none;}
+.dk{color:var(--muted-fg);}
+.dv{font-family:'JetBrains Mono',monospace;font-size:.6rem;text-align:right;word-break:break-all;}
+
+/* lp header */
+#lph{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.lph-t{font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:600;color:var(--fg);}
+.lph-s{font-size:.6rem;color:var(--muted-fg);margin-top:2px;}
+
+/* entity list scroll area */
+#elist-sc{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;}
+#elist-sc::-webkit-scrollbar{width:2px;}
+#elist-sc::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px;}
+.el-hdr{
+  display:grid;grid-template-columns:64px 1fr 36px 40px;gap:2px;
+  padding:4px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:.53rem;color:var(--muted-fg);
+  background:rgba(31,41,61,0.3);position:sticky;top:0;z-index:1;
+  border-bottom:1px solid var(--border);flex-shrink:0;}
+.el-hdr .rr{text-align:right;}
+.erow{
+  display:grid;grid-template-columns:64px 1fr 36px 40px;gap:2px;
+  padding:5px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:.58rem;
+  border-bottom:1px solid rgba(31,41,61,0.5);cursor:pointer;
+  transition:background .1s;}
+.erow:hover{background:rgba(31,41,61,0.3);}
+.erow.sel{background:rgba(31,41,61,0.55);}
+.ec-a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ec-t{color:var(--muted-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ec-s{text-align:right;color:var(--secondary);}
+.ec-h{text-align:right;color:var(--secondary);}
+.el-empty{padding:16px 10px;text-align:center;font-size:.6rem;
+  color:var(--muted-fg);line-height:2;}
+
+/* categories */
+#lp-cats{border-top:1px solid var(--border);padding:8px 10px;flex-shrink:0;}
+.cats-t{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;
+  color:var(--fg);margin-bottom:5px;}
+.ccat{
+  display:flex;align-items:center;gap:6px;padding:3px 4px;
+  border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  cursor:pointer;transition:background .12s;}
+.ccat:hover{background:rgba(31,41,61,0.4);}
+.ccat.solo{background:rgba(31,41,61,0.55);}
+.cdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.cname{flex:1;transition:color .2s;}
+.ccnt{color:var(--muted-fg);font-size:.56rem;min-width:18px;text-align:right;}
+
+/* ─── CENTER ────────────────────────────────────────────────────── */
+#center{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+
+/* domain control bar */
+#ctrl-bar{
+  height:40px;flex-shrink:0;
+  background:rgba(11,18,31,0.82);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(31,41,61,0.6);border-radius:var(--r);
+  display:flex;align-items:center;padding:0 12px;gap:5px;overflow-x:auto;}
+#ctrl-bar::-webkit-scrollbar{height:0;}
+.dp-btn{
+  padding:3px 8px;font-size:.56rem;font-family:'JetBrains Mono',monospace;
+  border:1px solid var(--border);border-radius:var(--r);
+  color:var(--muted-fg);background:transparent;cursor:pointer;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.dp-btn:hover{border-color:var(--primary);color:var(--primary);}
+.dp-btn.on{color:var(--fg);border-color:rgba(31,41,61,.9);}
+.dp-btn.solo{border-color:var(--primary);color:var(--primary);
+  background:rgba(0,255,102,.07);
+  box-shadow:0 0 6px rgba(0,255,102,.12);}
+
+/* map container */
+#mwrap{
+  flex:1;min-height:0;position:relative;overflow:hidden;
+  border:1px solid rgba(31,41,61,0.6);border-radius:var(--r);}
+#map{position:absolute;inset:0;background:#05080f;}
+.leaflet-container{background:#05080f!important;}
+.leaflet-control-attribution{
+  background:rgba(7,10,14,.75)!important;color:var(--muted-fg)!important;
+  font-size:.53rem!important;backdrop-filter:blur(6px);}
+.leaflet-control-attribution a{color:var(--muted-fg)!important;}
+.leaflet-control-zoom{
+  border:1px solid var(--border)!important;border-radius:var(--r)!important;
+  overflow:hidden;backdrop-filter:blur(12px);}
+.leaflet-control-zoom a{
+  background:rgba(11,18,31,0.88)!important;border-color:var(--border)!important;
+  color:var(--primary)!important;font-size:.82rem!important;
+  line-height:28px!important;width:28px!important;height:28px!important;}
+.leaflet-control-zoom a:hover{background:rgba(0,255,102,.1)!important;}
+
+/* query loading */
+#qload{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:100;background:rgba(11,18,31,0.93);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:var(--r2);
+  padding:12px 20px;display:none;align-items:center;gap:10px;}
+#qload.show{display:flex;}
+.ql-spin{width:13px;height:13px;border:2px solid rgba(0,255,102,.15);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:sfwd .7s linear infinite;flex-shrink:0;}
+.ql-t{font-size:.62rem;font-family:'JetBrains Mono',monospace;
+  color:var(--muted-fg);white-space:nowrap;}
+
+/* ─── RIGHT PANEL — ARIA ────────────────────────────────────────── */
+#rp{
+  width:320px;flex-shrink:0;
+  background:rgba(11,18,31,0.82);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(31,41,61,0.6);border-radius:var(--r);
+  display:flex;flex-direction:column;overflow:hidden;}
+#rph{padding:8px 10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.rp-tt{font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:600;color:var(--fg);}
+.rp-st{font-size:.56rem;color:var(--muted-fg);margin-top:2px;}
+.rp-clear{padding:2px 7px;background:none;border:1px solid var(--border);
+  border-radius:var(--r);color:var(--muted-fg);cursor:pointer;
+  font-size:.56rem;font-family:'JetBrains Mono',monospace;
+  transition:all .15s;}
+.rp-clear:hover{color:var(--fg);border-color:rgba(255,255,255,.15);}
+
+/* ARIA feed */
+#aria-feed{flex:1;overflow-y:auto;min-height:0;}
+#aria-feed::-webkit-scrollbar{width:2px;}
+#aria-feed::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px;}
+.af-item{padding:10px;border-bottom:1px solid var(--border);}
+.af-hdr{display:flex;align-items:flex-start;gap:6px;margin-bottom:3px;}
+.af-icon{font-size:.68rem;flex-shrink:0;margin-top:1px;color:var(--primary);}
+.af-icon.user{color:var(--muted-fg);}
+.af-title{font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:600;
+  color:var(--fg);line-height:1.3;}
+.af-title.user{color:var(--muted-fg);font-weight:400;}
+.af-ts{font-size:.54rem;color:var(--muted-fg);margin-bottom:4px;letter-spacing:.2px;}
+.af-body{font-size:.64rem;color:var(--secondary);line-height:1.65;word-break:break-word;}
+.af-body .ab{color:var(--primary);font-weight:600;font-style:normal;}
+.af-item.offline .af-body{color:var(--warning);}
+.af-typing{padding:10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:4px;}
+.af-typing span{width:3px;height:3px;border-radius:50%;background:var(--primary);
+  opacity:.5;animation:tb .8s ease-in-out infinite;}
+.af-typing span:nth-child(2){animation-delay:.16s;}
+.af-typing span:nth-child(3){animation-delay:.32s;}
+
+/* ARIA input */
+#aria-cmd{border-top:1px solid var(--border);padding:8px 10px;flex-shrink:0;}
+.ai-wrap{display:flex;align-items:center;gap:6px;
+  background:rgba(31,41,61,0.3);border:1px solid var(--border);
+  border-radius:var(--r);padding:6px 8px;transition:border-color .2s;}
+.ai-wrap:focus-within{border-color:rgba(0,255,102,.22);}
+.ai-prompt{color:var(--muted-fg);font-size:.65rem;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+#aria-input{flex:1;background:transparent;border:none;outline:none;
+  font-size:.64rem;font-family:'JetBrains Mono',monospace;color:var(--fg);min-width:0;}
+#aria-input::placeholder{color:var(--muted-fg);}
+#aria-send{display:none;background:none;border:none;
+  color:var(--muted-fg);cursor:pointer;font-size:.78rem;
+  padding:0 2px;transition:color .15s;flex-shrink:0;line-height:1;}
+#aria-send:hover{color:var(--primary);}
+#aria-send.show{display:block;}
+
+/* ─── CANVAS OVERLAYS ───────────────────────────────────────────── */
+#alt-canvas,#trade-canvas{position:absolute;inset:0;pointer-events:none;}
+
+/* ─── ANIMATIONS ────────────────────────────────────────────────── */
+@keyframes sfwd{to{transform:rotate(360deg)}}
+@keyframes srev{to{transform:rotate(-360deg)}}
+@keyframes pulseg{
+  0%,100%{opacity:1;box-shadow:0 0 0 2px rgba(0,255,102,.15),0 0 8px rgba(0,255,102,.35)}
+  50%{opacity:.5;box-shadow:0 0 0 4px rgba(0,255,102,.05),0 0 3px rgba(0,255,102,.1)}}
+@keyframes tb{
+  0%,100%{transform:translateY(0);opacity:.5}
+  50%{transform:translateY(-3px);opacity:1}}
+@keyframes eq-ring{
+  0%,100%{transform:scale(1);opacity:.85}
+  50%{transform:scale(1.5);opacity:.3}}
+@keyframes e9glow{
+  0%,100%{filter:drop-shadow(0 0 2px var(--primary));opacity:1;}
+  50%{filter:drop-shadow(0 0 6px var(--primary));opacity:.7;}}
+
+/* ─── ARIA MAP OVERLAYS ─────────────────────────────────────────── */
+.leaflet-popup-content-wrapper{
+  background:rgba(11,18,31,0.95)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r2)!important;
+  box-shadow:0 4px 20px rgba(0,0,0,0.6)!important;
+  color:var(--fg)!important;}
+.leaflet-popup-content{
+  font-family:'JetBrains Mono',monospace!important;
+  font-size:.62rem!important;color:var(--secondary)!important;
+  margin:8px 10px!important;line-height:1.6!important;}
+.leaflet-popup-tip{background:rgba(11,18,31,0.95)!important;}
+.leaflet-popup-close-button{color:var(--muted-fg)!important;}
+.leaflet-tooltip{
+  background:rgba(11,18,31,0.92)!important;
+  border:1px solid var(--border)!important;
+  border-radius:var(--r)!important;
+  color:var(--secondary)!important;
+  font-family:'JetBrains Mono',monospace!important;
+  font-size:.58rem!important;box-shadow:none!important;}
+
+/* ─── TACTICAL REPORT OVERLAY ───────────────────────────────────── */
+#rpt-overlay{
+  position:fixed;inset:0;z-index:1500;
+  background:rgba(7,10,14,0.97);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  flex-direction:column;overflow:hidden;}
+#rpt-hdr-bar{
+  height:54px;flex-shrink:0;
+  background:rgba(11,18,31,0.92);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;}
+.rpt-hdr-title{
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;
+  color:var(--primary);letter-spacing:2px;}
+.rpt-hdr-meta{
+  font-size:.56rem;color:var(--muted-fg);margin-top:4px;letter-spacing:.4px;}
+.rpt-close-btn{
+  padding:6px 18px;background:none;
+  border:1px solid rgba(255,51,51,.35);border-radius:var(--r);
+  color:var(--danger);cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.5px;
+  transition:all .15s;}
+.rpt-close-btn:hover{background:rgba(255,51,51,.08);border-color:var(--danger);}
+#rpt-loading{
+  flex:1;display:flex;align-items:center;justify-content:center;}
+#rpt-content{
+  flex:1;overflow-y:auto;padding:12px;min-height:0;}
+#rpt-content::-webkit-scrollbar{width:3px;}
+#rpt-content::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px;}
+#rpt-kpis{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+.rpt-kpi{
+  background:rgba(11,18,31,0.75);border:1px solid var(--border);
+  border-radius:var(--r2);padding:13px;}
+.rpt-kpi-label{
+  font-family:'JetBrains Mono',monospace;font-size:.52rem;
+  color:var(--muted-fg);letter-spacing:1px;margin-bottom:7px;}
+.rpt-kpi-value{
+  font-family:'JetBrains Mono',monospace;font-size:1.45rem;font-weight:700;
+  line-height:1;margin-bottom:5px;}
+.rpt-kpi-delta{
+  font-family:'JetBrains Mono',monospace;font-size:.56rem;}
+.rpt-box{
+  background:rgba(11,18,31,0.75);border:1px solid var(--border);
+  border-radius:var(--r2);padding:10px;}
+.rpt-box-title{
+  font-family:'JetBrains Mono',monospace;font-size:.56rem;font-weight:600;
+  color:var(--muted-fg);letter-spacing:1px;margin-bottom:8px;}
+.rpt-prog-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.rpt-prog-label{
+  font-family:'JetBrains Mono',monospace;font-size:.5rem;
+  color:var(--muted-fg);width:95px;flex-shrink:0;line-height:1.4;}
+.rpt-prog-bar-bg{
+  flex:1;height:3px;background:rgba(31,41,61,0.9);border-radius:2px;overflow:hidden;}
+.rpt-prog-bar-fill{
+  height:100%;border-radius:2px;transition:width .6s ease;}
+.rpt-prog-val{
+  font-family:'JetBrains Mono',monospace;font-size:.5rem;
+  width:30px;text-align:right;flex-shrink:0;}
+#rpt-event-rows tr{border-bottom:1px solid rgba(31,41,61,0.5);}
+#rpt-event-rows tr:last-child{border-bottom:none;}
+#rpt-event-rows td{
+  padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:.57rem;}
+.rpt-ev-time{color:var(--muted-fg);white-space:nowrap;}
+.rpt-ev-event{color:var(--secondary);}
+.rpt-ev-domain{color:var(--primary);white-space:nowrap;}
+.rpt-ev-sev{font-weight:700;text-align:center;white-space:nowrap;}
+.rpt-intel-card{
+  background:rgba(11,18,31,0.75);border:1px solid var(--border);
+  border-radius:var(--r2);padding:10px;}
+.rpt-intel-card-title{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;
+  color:var(--primary);margin-bottom:6px;}
+.rpt-intel-card-body{
+  font-size:.62rem;color:var(--secondary);line-height:1.65;}
+</style>
+</head>
+<body>
+
+<!-- ═══ E9 BOOT LOADER ════════════════════════════════════════════ -->
+<div id="e9-loader">
+  <div class="e9-ring">
+    <div class="e9-ro"></div>
+    <div class="e9-ri"></div>
+    <div class="e9-logo">
+      <div class="e9-e9">E9</div>
+      <div class="e9-name">EVENTNINE</div>
+    </div>
+    <div class="e9-pd"></div>
+  </div>
+  <div class="e9-msg">INITIALIZING EVENTNINE</div>
+  <div class="e9-dots"><span></span><span></span><span></span></div>
+  <div class="e9-sys"><em>●</em> SYSTEM ONLINE</div>
+</div>
+
+<!-- ═══ APP ═══════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="hdr">
+    <div class="hdr-l">
+      <div class="hdr-logo">
+        <svg class="hdr-radio" viewBox="0 0 24 24" fill="none">
+          <!-- Outer ring -->
+          <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="0.7" opacity="0.3"/>
+          <!-- 9 tick marks at 40° intervals — the "Nine" in EventNine -->
+          <line x1="12" y1="2.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="18.11" y1="4.72" x2="16.82" y2="6.26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="21.36" y1="10.35" x2="19.39" y2="10.70" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="20.23" y1="16.75" x2="18.50" y2="15.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="15.25" y1="20.93" x2="14.57" y2="19.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="8.75" y1="20.93" x2="9.44" y2="19.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="3.77" y1="16.75" x2="5.51" y2="15.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2.64" y1="10.35" x2="4.61" y2="10.70" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="5.89" y1="4.72" x2="7.18" y2="6.26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- Inner ring -->
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1" opacity="0.65"/>
+          <!-- Event focal point -->
+          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        </svg>
+        <span class="hdr-brand">EVENTNINE</span>
+      </div>
+      <span class="hdr-sep">·</span>
+      <div class="hdr-srch">
+        <input id="q-input" type="text"
+          placeholder="vessels over Strait of Hormuz · weather Japan · conflict Ukraine · satellites…"/>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <button class="btn-go" onclick="submitQuery()">GO</button>
+      <div id="ws-dot">●</div>
+    </div>
+  </header>
+
+  <!-- MAIN 3-COL -->
+  <div id="main">
+
+    <!-- LEFT PANEL -->
+    <div id="lp">
+
+      <!-- Entity detail (shown on entity click) -->
+      <div id="ed">
+        <div class="ed-top">
+          <div>
+            <div class="ed-name" id="ed-name">—</div>
+            <div class="ed-type" id="ed-type">—</div>
+          </div>
+          <button class="ed-x" onclick="closeDetail()">✕</button>
+        </div>
+        <div class="ed-rows" id="ed-rows"></div>
+      </div>
+
+      <!-- Header -->
+      <div id="lph">
+        <div class="lph-t">LIVE ENTITIES</div>
+        <div class="lph-s" id="lph-s">0 tracked globally</div>
+      </div>
+
+      <!-- Entity list -->
+      <div id="elist-sc">
+        <div class="el-hdr">
+          <div>ASSET</div><div>TYPE</div>
+          <div class="rr">SPD</div><div class="rr">ALT</div>
+        </div>
+        <div id="elist">
+          <div class="el-empty">Submit a query to begin.<br>vessels Strait of Hormuz<br>weather Japan · conflict Ukraine</div>
+        </div>
+      </div>
+
+      <!-- Category stats -->
+      <div id="lp-cats">
+        <div class="cats-t">ENTITIES</div>
+        <div id="cat-rows"></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div id="center">
+
+      <!-- Domain control bar -->
+      <div id="ctrl-bar">
+        <div id="dp-btns" style="display:flex;gap:5px;"></div>
+      </div>
+
+      <!-- Map -->
+      <div id="mwrap">
+        <div id="map"></div>
+        <div id="qload">
+          <div class="ql-spin"></div>
+          <div class="ql-t" id="ql-t">Processing…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL — ARIA -->
+    <div id="rp">
+      <div id="rph">
+        <div>
+          <div class="rp-tt">ARIA INTELLIGENCE</div>
+          <div class="rp-st">Integrated Assessment &amp; Analysis · Gemini</div>
+        </div>
+        <button class="rp-clear" onclick="clearARIA()">CLEAR</button>
+      </div>
+      <div id="aria-feed"></div>
+      <div id="aria-cmd">
+        <div class="ai-wrap">
+          <span class="ai-prompt">→</span>
+          <input id="aria-input" type="text"
+            placeholder="vessels Strait of Hormuz · cyber APT · weather Japan…"/>
+          <button id="aria-send" onclick="sendChat()">↑</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- TACTICAL REPORT OVERLAY -->
+<div id="rpt-overlay" style="display:none;">
+  <div id="rpt-hdr-bar">
+    <div>
+      <div id="rpt-title" class="rpt-hdr-title">TACTICAL INTELLIGENCE REPORT</div>
+      <div id="rpt-meta" class="rpt-hdr-meta">ARIA · EVENTNINE</div>
+    </div>
+    <button class="rpt-close-btn" onclick="closeReport()">✕ CLOSE</button>
+  </div>
+  <div id="rpt-loading">
+    <div style="text-align:center;">
+      <div class="e9-ring" style="margin:0 auto 20px;width:64px;height:64px;">
+        <div class="e9-ro"></div><div class="e9-ri"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted-fg);letter-spacing:3px;">PROCESSING INTELLIGENCE DATA…</div>
+      <div class="e9-dots" style="justify-content:center;margin-top:12px;"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+  <div id="rpt-content">
+    <div id="rpt-kpis"></div>
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px;margin-bottom:10px;">
+      <div class="rpt-box">
+        <div class="rpt-box-title">ACTIVITY TIMELINE</div>
+        <div style="height:160px;position:relative;"><canvas id="c-activity"></canvas></div>
+      </div>
+      <div class="rpt-box">
+        <div class="rpt-box-title">THREAT DISTRIBUTION</div>
+        <div style="height:160px;position:relative;"><canvas id="c-threat"></canvas></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 0.85fr 0.85fr;gap:8px;margin-bottom:10px;">
+      <div class="rpt-box">
+        <div class="rpt-box-title">SIGNAL METRICS — 7 DAY</div>
+        <div style="height:150px;position:relative;"><canvas id="c-signals"></canvas></div>
+      </div>
+      <div class="rpt-box">
+        <div class="rpt-box-title">ENTITY BREAKDOWN</div>
+        <div style="height:150px;position:relative;"><canvas id="c-entities"></canvas></div>
+      </div>
+      <div class="rpt-box">
+        <div class="rpt-box-title">SYSTEM STATUS</div>
+        <div id="rpt-status" style="padding-top:6px;"></div>
+      </div>
+    </div>
+    <div class="rpt-box" style="margin-bottom:10px;">
+      <div class="rpt-box-title">EVENT LOG</div>
+      <div style="overflow-x:auto;max-height:190px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--muted-fg);text-align:left;font-weight:600;letter-spacing:.5px;white-space:nowrap;">TIME</th>
+              <th style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--muted-fg);text-align:left;font-weight:600;letter-spacing:.5px;">EVENT</th>
+              <th style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--muted-fg);text-align:left;font-weight:600;letter-spacing:.5px;white-space:nowrap;">DOMAIN</th>
+              <th style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--muted-fg);text-align:center;font-weight:600;letter-spacing:.5px;white-space:nowrap;">SEVERITY</th>
+            </tr>
+          </thead>
+          <tbody id="rpt-event-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+      <div id="rpt-intel-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="rpt-box">
+        <div class="rpt-box-title">INTELLIGENCE SUMMARY</div>
+        <div id="rpt-intel-summary" style="font-size:.62rem;color:var(--secondary);line-height:1.75;"></div>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const DOMAINS = {
+  aerospace:{ label:'AEROSPACE', color:'#00bfff', icon:'✈' },
+  maritime: { label:'MARITIME',  color:'#1e88e5', icon:'⛴' },
+  conflict: { label:'CONFLICT',  color:'#ff4444', icon:'⚡' },
+  cyber:    { label:'CYBER',     color:'#00e676', icon:'⬡' },
+  weather:  { label:'WEATHER',   color:'#ffd600', icon:'◎' },
+  space:    { label:'SPACE',     color:'#7c4dff', icon:'✦' },
+  trade:    { label:'TRADE',     color:'#ff9800', icon:'◈' },
+  sigint:   { label:'SIGINT',    color:'#e91e63', icon:'◉' },
+  geo:      { label:'GEO',       color:'#009688', icon:'◆' },
+};
+
+const TYPE_DOMAIN = {
+  flight:'aerospace', aircraft:'aerospace', plane:'aerospace',
+  iss:'space', satellite:'space', orbital:'space',
+  earthquake:'geo', seismic:'geo',
+  ship:'maritime', vessel:'maritime', tanker:'maritime', roro:'maritime', container:'maritime',
+  storm:'weather', cyclone:'weather', hurricane:'weather', weather:'weather',
+  conflict:'conflict', militia:'conflict', airstrike:'conflict',
+  cyber:'cyber', malware:'cyber', ransomware:'cyber', botnet:'cyber',
+  sigint:'sigint', intercept:'sigint', elint:'sigint',
+  port:'trade', commodity:'trade',
+};
+
+const TRADE_ROUTES = [
+  { from:[31.2,121.5], to:[51.5,-0.1],  color:'#ff9800', w:1.8, ph:0   },
+  { from:[26.0,50.5],  to:[35.7,139.7], color:'#ffd600', w:2.2, ph:.3  },
+  { from:[-23.5,-46.6],to:[31.2,121.5], color:'#00e676', w:1.4, ph:.6  },
+  { from:[40.7,-74.0], to:[51.5,-0.1],  color:'#00bfff', w:1.8, ph:.1  },
+  { from:[1.3,103.8],  to:[51.5,-0.1],  color:'#ff9800', w:1.4, ph:.45 },
+  { from:[22.3,114.2], to:[37.6,126.9], color:'#1e88e5', w:1,   ph:.2  },
+  { from:[-33.9,18.4], to:[51.5,-0.1],  color:'#e91e63', w:1,   ph:.7  },
+  { from:[19.4,-99.1], to:[40.7,-74.0], color:'#ffd600', w:1.4, ph:.55 },
+  { from:[55.7,37.6],  to:[39.9,116.4], color:'#7c4dff', w:1.4, ph:.35 },
+  { from:[-34.6,-58.4],to:[51.5,-0.1],  color:'#00e676', w:1,   ph:.8  },
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const S = {
+  entities:{}, markers:{}, visible:{},
+  soloKey:null, selId:null,
+};
+Object.keys(DOMAINS).forEach(d => S.visible[d] = true);
+
+// ═══════════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════════
+const map = L.map('map', {
+  center:[22,12], zoom:5, zoomControl:false, attributionControl:true,
+});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© CartoDB · EventNine', subdomains:'abcd', maxZoom:19,
+}).addTo(map);
+L.control.zoom({ position:'bottomright' }).addTo(map);
+
+const DL = {};
+Object.keys(DOMAINS).forEach(d => { DL[d] = L.layerGroup().addTo(map); });
+
+// ═══════════════════════════════════════════════════════════
+// FLY-TO
+// ═══════════════════════════════════════════════════════════
+const FLYTO_REGIONS = {
+  'strait of hormuz':[26.5,56.3,7],'hormuz':[26.5,56.3,7],
+  'suez canal':[30.5,32.3,8],'suez':[30.5,32.3,8],
+  'strait of malacca':[2.5,101.5,7],'malacca':[2.5,101.5,7],
+  'south china sea':[13,114,5],'taiwan strait':[24.5,119.5,7],
+  'black sea':[43,34,6],'mediterranean':[36,18,5],
+  'persian gulf':[26,52,6],'gulf of aden':[12,47,6],
+  'red sea':[20,38,6],'arabian sea':[18,65,5],
+  'north sea':[56,4,6],'english channel':[50.5,-1,8],
+  'bab el mandeb':[12.6,43.4,8],'strait of gibraltar':[35.9,-5.5,9],
+  'global':[20,10,2],'world':[20,10,2],
+  'north america':[45,-100,4],'south america':[-15,-60,4],
+  'europe':[52,15,4],'asia':[35,95,3],'africa':[5,20,4],
+  'middle east':[27,45,5],'southeast asia':[5,112,5],
+  'ukraine':[49,31,6],'kyiv':[50.45,30.52,10],
+  'gaza':[31.4,34.4,10],'israel':[31.5,35,8],
+  'taiwan':[23.7,120.9,8],'korea':[36,127.5,7],
+  'japan':[36,138,6],'china':[35,105,5],'india':[22,79,5],
+  'russia':[60,80,4],'usa':[38,-97,4],'australia':[-27,134,4],
+  'uk':[54,-2,6],'germany':[51,10,6],'france':[46,2,6],
+  'brazil':[-14,-51,5],'canada':[56,-96,4],'pakistan':[30,70,6],
+  'iran':[32,53,6],'saudi arabia':[24,45,6],'turkey':[39,35,6],
+  'africa':[5,20,4],'nigeria':[9,8,6],'kenya':[-1,38,7],
+};
+
+function flyToQuery(q) {
+  const p = q.toLowerCase().trim();
+  for (const [key,[lat,lon,zoom]] of Object.entries(FLYTO_REGIONS)) {
+    if (p.includes(key)) {
+      map.flyTo([lat,lon], zoom, {duration:1.6, easeLinearity:0.25});
+      return true;
+    }
+  }
+  const stopwords = ['weather','in','over','near','around','ships','vessels',
+    'flights','conflict','satellites','earthquake','cyber','sigint','all','the',
+    'global','show','me','find','search','active','current'];
+  const words = p.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
+  if (words.length) {
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(words.join(' '))}&format=json&limit=1`,
+      {headers:{'User-Agent':'EventNine/3.0'}})
+      .then(r=>r.json())
+      .then(d=>{
+        if (d[0]) {
+          const bbox = d[0].boundingbox;
+          if (bbox) {
+            const s=+bbox[0],n=+bbox[1],w=+bbox[2],e=+bbox[3];
+            map.flyToBounds([[s,w],[n,e]],{padding:[60,60],duration:1.6,maxZoom:12});
+          } else {
+            map.flyTo([+d[0].lat,+d[0].lon], 9, {duration:1.6});
+          }
+        }
+      }).catch(()=>{});
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALTITUDE OVERLAY
+// ═══════════════════════════════════════════════════════════
+class AltOverlay {
+  constructor() {
+    this.cvs = document.createElement('canvas');
+    this.cvs.id = 'alt-canvas';
+    document.getElementById('map').appendChild(this.cvs);
+    this.ctx = this.cvs.getContext('2d');
+    this.items = {};
+    map.on('move zoom moveend zoomend', ()=>this.draw());
+    window.addEventListener('resize', ()=>this._sz());
+    this._sz();
+  }
+  _sz() {
+    const m = document.getElementById('map');
+    this.cvs.width = m.clientWidth; this.cvs.height = m.clientHeight;
+    this.draw();
+  }
+  set(id,lat,lng,alt_m){ this.items[id]={lat,lng,alt_m:alt_m||0}; }
+  del(id){ delete this.items[id]; }
+  clear(){ this.items={}; this.draw(); }
+  draw() {
+    const ctx = this.ctx;
+    ctx.clearRect(0,0,this.cvs.width,this.cvs.height);
+    if (!S.visible.aerospace) return;
+    const APX = 0.003 * Math.pow(2, map.getZoom()-2);
+    Object.values(this.items).forEach(f=>{
+      if (f.alt_m < 500) return;
+      const pt = map.latLngToContainerPoint([f.lat,f.lng]);
+      const h  = Math.min(f.alt_m*APX, 80);
+      ctx.beginPath(); ctx.strokeStyle='rgba(0,191,255,0.18)';
+      ctx.lineWidth=1; ctx.setLineDash([2,4]);
+      ctx.moveTo(pt.x,pt.y); ctx.lineTo(pt.x,pt.y-h); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.shadowBlur=6; ctx.shadowColor='#00bfff';
+      ctx.beginPath(); ctx.arc(pt.x,pt.y-h,2,0,Math.PI*2);
+      ctx.fillStyle='#00bfff'; ctx.fill();
+      ctx.shadowBlur=0;
+    });
+  }
+}
+const altOvl = new AltOverlay();
+
+// ═══════════════════════════════════════════════════════════
+// TRADE CANVAS
+// ═══════════════════════════════════════════════════════════
+class TradeCanvas {
+  constructor() {
+    this.cvs = document.createElement('canvas');
+    this.cvs.id = 'trade-canvas';
+    this.cvs.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:10;';
+    document.getElementById('map').appendChild(this.cvs);
+    this.ctx = this.cvs.getContext('2d');
+    this.visible = true;
+    window.addEventListener('resize', ()=>this._sz());
+    this._sz();
+  }
+  _sz(){
+    const m = document.getElementById('map');
+    this.cvs.width = m.clientWidth; this.cvs.height = m.clientHeight;
+  }
+  draw() {
+    const ctx = this.ctx;
+    ctx.clearRect(0,0,this.cvs.width,this.cvs.height);
+    if (!this.visible) return;
+    const W = this.cvs.width;
+    TRADE_ROUTES.forEach(r=>{
+      const p1 = map.latLngToContainerPoint(r.from);
+      const p2 = map.latLngToContainerPoint(r.to);
+      if (p1.x<-300&&p2.x<-300) return;
+      if (p1.x>W+300&&p2.x>W+300) return;
+      const dx=p2.x-p1.x, dy=p2.y-p1.y;
+      const cp={x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2-Math.sqrt(dx*dx+dy*dy)*0.22};
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y);
+      ctx.quadraticCurveTo(cp.x,cp.y,p2.x,p2.y);
+      ctx.strokeStyle=r.color+'1e'; ctx.lineWidth=r.w; ctx.stroke();
+      const t=((Date.now()/4500+r.ph)%1);
+      for (let i=0;i<=10;i++) {
+        const ti=Math.max(0,t-(10-i)*0.012);
+        const px=(1-ti)*(1-ti)*p1.x+2*(1-ti)*ti*cp.x+ti*ti*p2.x;
+        const py=(1-ti)*(1-ti)*p1.y+2*(1-ti)*ti*cp.y+ti*ti*p2.y;
+        ctx.beginPath(); ctx.arc(px,py,1.6*(i/10)+0.4,0,Math.PI*2);
+        ctx.fillStyle=r.color+Math.round((i/10)*200).toString(16).padStart(2,'0');
+        ctx.fill();
+      }
+    });
+  }
+}
+const tradeC = new TradeCanvas();
+
+// ═══════════════════════════════════════════════════════════
+// MARKERS
+// ═══════════════════════════════════════════════════════════
+function svgIcon(domain, heading, sz=13) {
+  const d = DOMAINS[domain] || DOMAINS.geo;
+  return L.divIcon({
+    className:'',
+    html:`<div style="filter:drop-shadow(0 0 3px ${d.color}88)">
+      <svg width="${sz}" height="${sz}" viewBox="0 0 20 20">
+        <g transform="rotate(${heading||0},10,10)">
+          <polygon points="10,2 15,17 10,13 5,17" fill="${d.color}" opacity=".92"/>
+        </g>
+      </svg></div>`,
+    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2],
+  });
+}
+function eqIcon(mag) {
+  const r = Math.max(6,Math.min(20,(mag||3)*3));
+  const c = mag>6?'#ff4444':mag>4?'#ff9800':'#ffd600';
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:${r}px;height:${r}px;border-radius:50%;
+      background:${c}22;border:1.5px solid ${c};
+      box-shadow:0 0 6px ${c}66;animation:eq-ring 2s ease-in-out infinite;"></div>`,
+    iconSize:[r,r], iconAnchor:[r/2,r/2],
+  });
+}
+function weatherIcon(meta) {
+  const temp = (meta?.temperature??'').replace('°C','').trim();
+  const cond = meta?.condition??'';
+  const isSev = /Thunder|Violent|Hail/i.test(cond);
+  const isRain= /Rain|Drizzle|Shower/i.test(cond);
+  const isSnow= /Snow|Freez/i.test(cond);
+  const c = isSev?'#ff4444':isRain?'#1e88e5':isSnow?'#7c4dff':'#ffd600';
+  const t = temp?`${parseFloat(temp)>0?'+':''}${Math.round(parseFloat(temp))}°`:'?°';
+  return L.divIcon({
+    className:'',
+    html:`<div style="
+      background:rgba(7,10,14,.9);border:1px solid ${c};border-radius:3px;
+      padding:1px 5px;font-size:.56rem;font-weight:700;color:${c};
+      font-family:'JetBrains Mono',monospace;white-space:nowrap;
+      box-shadow:0 0 6px ${c}44;line-height:1.5;">${t}</div>`,
+    iconSize:[30,16], iconAnchor:[15,8],
+  });
+}
+
+function domainOf(e) {
+  return TYPE_DOMAIN[(e.entity_type||'').toLowerCase()] || e.domain || 'geo';
+}
+
+function upsertEntity(layerId, entity) {
+  const id = entity.id, dom = domainOf(entity);
+  const ll = [entity.lat, entity.lon??entity.lng??0];
+  if (dom==='aerospace') altOvl.set(id, entity.lat, entity.lon??entity.lng, entity.alt_m);
+  S.entities[id] = {...entity, domain:dom, _lid:layerId};
+  let mk = S.markers[id];
+  if (!mk) {
+    const icon = entity.entity_type==='earthquake' ? eqIcon(entity.meta?.magnitude)
+               : entity.entity_type==='weather'    ? weatherIcon(entity.meta)
+               : svgIcon(dom, entity.heading_deg, 13);
+    mk = L.marker(ll,{icon, title:entity.label||id})
+           .on('click', ()=>selectEntity(id));
+    DL[dom].addLayer(mk); S.markers[id] = mk;
+  } else {
+    mk.setLatLng(ll);
+    if (dom==='aerospace' && entity.heading_deg!=null)
+      mk.setIcon(svgIcon(dom, entity.heading_deg, 13));
+  }
+  if (!S.visible[dom]) mk.setOpacity(0);
+  if (dom==='aerospace') altOvl.draw();
+  updateSB();
+}
+
+function clearLayerEntities(layerId) {
+  Object.entries(S.entities).forEach(([id,e])=>{
+    if (e._lid !== layerId) return;
+    const m = S.markers[id];
+    if (m) { DL[e.domain]?.removeLayer(m); delete S.markers[id]; }
+    if (e.domain==='aerospace') altOvl.del(id);
+    delete S.entities[id];
+  });
+  updateSB();
+}
+function clearAll() {
+  Object.values(S.markers).forEach(m=>Object.values(DL).forEach(lg=>lg.removeLayer(m)));
+  S.entities={}; S.markers={};
+  altOvl.clear(); updateSB();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENTITY DETAIL (left panel)
+// ═══════════════════════════════════════════════════════════
+function selectEntity(id) {
+  S.selId = id;
+  const e = S.entities[id];
+  if (!e) return;
+  const d = DOMAINS[e.domain] || DOMAINS.geo;
+  // fly to entity
+  if (e.lat != null) {
+    map.flyTo([e.lat, e.lon??e.lng??0], Math.max(map.getZoom(), 7), {duration:1.2});
+  }
+  // populate detail panel
+  const rows = [];
+  rows.push({k:'Lat', v: e.lat?.toFixed(5)+'°'});
+  rows.push({k:'Lon', v: (e.lon??e.lng)?.toFixed(5)+'°'});
+  if (e.alt_m && e.alt_m!==0) rows.push({k:'Altitude', v: Math.round(e.alt_m).toLocaleString()+' m'});
+  if (e.speed_kmh)             rows.push({k:'Speed',    v: Math.round(e.speed_kmh)+' km/h'});
+  if (e.heading_deg)           rows.push({k:'Heading',  v: Math.round(e.heading_deg)+'°'});
+  if (e.meta) {
+    Object.entries(e.meta)
+      .filter(([k,v])=>!['icao24','source'].includes(k)&&v!=null&&v!==''&&String(v)!=='0')
+      .slice(0,7)
+      .forEach(([k,v])=>rows.push({
+        k: k.charAt(0).toUpperCase()+k.slice(1).replace(/_/g,' '),
+        v: String(v).slice(0,36)
+      }));
+  }
+  document.getElementById('ed-name').textContent = (e.label||id).slice(0,20);
+  document.getElementById('ed-name').style.color = d.color;
+  document.getElementById('ed-type').textContent = d.label+' · '+(e.entity_type||e.domain||'').toUpperCase();
+  document.getElementById('ed-rows').innerHTML = rows.map(r=>
+    `<div class="dr2"><span class="dk">${r.k}</span><span class="dv" style="color:${d.color}cc">${r.v}</span></div>`
+  ).join('');
+  document.getElementById('ed').style.display = 'flex';
+  updateSB();
+}
+function closeDetail() {
+  document.getElementById('ed').style.display = 'none';
+  S.selId = null;
+  updateSB();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOMAIN UI
+// ═══════════════════════════════════════════════════════════
+function buildDomainUI() {
+  // Control bar buttons
+  const btns = document.getElementById('dp-btns');
+  Object.entries(DOMAINS).forEach(([key,d])=>{
+    const b = document.createElement('button');
+    b.className = 'dp-btn on';
+    b.id = `dpb-${key}`;
+    b.textContent = d.label;
+    b.onclick = ()=>soloDomain(key);
+    btns.appendChild(b);
+  });
+  // Category rows in left panel
+  const catEl = document.getElementById('cat-rows');
+  Object.entries(DOMAINS).forEach(([key,d])=>{
+    const row = document.createElement('div');
+    row.className = 'ccat'; row.id = `crow-${key}`;
+    row.onclick = ()=>soloDomain(key);
+    row.innerHTML = `
+      <div class="cdot" id="cdot-${key}" style="background:var(--muted-fg);"></div>
+      <span class="cname" id="cname-${key}" style="color:var(--muted-fg);">${d.label}</span>
+      <span class="ccnt" id="dc-${key}">—</span>`;
+    catEl.appendChild(row);
+  });
+}
+
+function soloDomain(key) {
+  if (S.soloKey === key) {
+    // deselect — show all
+    S.soloKey = null;
+    Object.keys(DOMAINS).forEach(k=>{
+      S.visible[k] = true;
+      DL[k].addTo(map);
+      document.getElementById(`dpb-${k}`)?.classList.remove('solo');
+      document.getElementById(`dpb-${k}`)?.classList.add('on');
+      document.getElementById(`crow-${k}`)?.classList.remove('solo');
+    });
+    tradeC.visible = true; altOvl.draw();
+    document.getElementById('lph-s').textContent = `${Object.values(S.entities).length.toLocaleString()} tracked globally`;
+  } else {
+    S.soloKey = key;
+    Object.keys(DOMAINS).forEach(k=>{
+      S.visible[k] = (k===key);
+      if (S.visible[k]) DL[k].addTo(map); else DL[k].remove();
+      const btn = document.getElementById(`dpb-${k}`);
+      if (btn) { btn.classList.toggle('solo',k===key); btn.classList.toggle('on',false); }
+      document.getElementById(`crow-${k}`)?.classList.toggle('solo',k===key);
+    });
+    tradeC.visible = (key==='trade'); altOvl.draw();
+    document.getElementById('lph-s').textContent = `${DOMAINS[key].label} only`;
+  }
+  updateSB();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR UPDATE
+// ═══════════════════════════════════════════════════════════
+let _sbTick = null;
+function updateSB(){ clearTimeout(_sbTick); _sbTick = setTimeout(_doSB, 80); }
+
+function _doSB() {
+  const all   = Object.values(S.entities);
+  const vis   = S.soloKey ? all.filter(e=>e.domain===S.soloKey) : all;
+
+  // header count
+  if (!S.soloKey)
+    document.getElementById('lph-s').textContent = `${all.length.toLocaleString()} tracked globally`;
+
+  // entity list
+  const listEl = document.getElementById('elist');
+  if (!vis.length) {
+    listEl.innerHTML = '<div class="el-empty">No entities. Submit a query to begin.<br>vessels Strait of Hormuz<br>weather Japan · conflict Ukraine</div>';
+  } else {
+    listEl.innerHTML = vis.slice(-60).reverse().map(e=>{
+      const d   = DOMAINS[e.domain] || DOMAINS.geo;
+      const spd = e.speed_kmh ? Math.round(e.speed_kmh)+'' : '—';
+      const alt = e.alt_m && e.alt_m>100 ? (e.alt_m/1000).toFixed(1)+'km' : '—';
+      const lbl = (e.label||e.id||'').slice(0,10);
+      const typ = (e.entity_type||e.domain||'').toUpperCase().slice(0,8);
+      const sel = S.selId===e.id;
+      const eid = (e.id||'').replace(/'/g,"\\'");
+      return `<div class="erow${sel?' sel':''}" onclick="selectEntity('${eid}')">
+        <div class="ec-a" style="color:${d.color}">${lbl}</div>
+        <div class="ec-t">${typ}</div>
+        <div class="ec-s">${spd}</div>
+        <div class="ec-h">${alt}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // category counts + dot colors
+  const counts = {};
+  Object.keys(DOMAINS).forEach(d=>counts[d]=0);
+  all.forEach(e=>{ if(counts[e.domain]!=null) counts[e.domain]++; });
+  Object.entries(DOMAINS).forEach(([k,d])=>{
+    const cnt = counts[k]||0;
+    const el  = document.getElementById(`dc-${k}`);
+    const dot = document.getElementById(`cdot-${k}`);
+    const nm  = document.getElementById(`cname-${k}`);
+    if (el)  el.textContent = cnt || '—';
+    if (dot) dot.style.background = cnt ? d.color : 'var(--muted-fg)';
+    if (nm)  nm.style.color       = cnt ? 'var(--fg)' : 'var(--muted-fg)';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// WS STATUS
+// ═══════════════════════════════════════════════════════════
+function setWS(ok) {
+  const dot = document.getElementById('ws-dot');
+  dot.classList.toggle('live', ok);
+  dot.title = ok ? 'WebSocket: LIVE' : 'WebSocket: OFFLINE';
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUERY LOAD
+// ═══════════════════════════════════════════════════════════
+function showLoad(on, txt) {
+  document.getElementById('qload').classList.toggle('show', on);
+  if (txt) document.getElementById('ql-t').textContent = txt;
+}
+
+// ═══════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════
+let socket = null;
+function connectWS() {
+  const proto = location.protocol==='https:'?'wss:':'ws:';
+  socket = new WebSocket(`${proto}//${location.host}/ws/simulation`);
+  socket.onopen = ()=>{
+    setWS(true);
+    const v = document.getElementById('q-input').value.trim();
+    if (v) submitQuery(v);
+  };
+  socket.onmessage = ({data:raw})=>{
+    const msg = JSON.parse(raw);
+    switch(msg.type) {
+      case 'entity_update':
+        (msg.entities||[msg.entity]).forEach(e=>{ if(e) upsertEntity(msg.layer_id,e); });
+        showLoad(false); break;
+      case 'layer_removed': clearLayerEntities(msg.layer_id); break;
+      case 'cleared':       clearAll(); break;
+      case 'error':         showLoad(false); break;
+    }
+  };
+  socket.onclose = ()=>{ setWS(false); setTimeout(connectWS, 3000); };
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUERY
+// ═══════════════════════════════════════════════════════════
+function submitQuery(prompt) {
+  const p = prompt || document.getElementById('q-input').value.trim();
+  if (!p) return;
+  if (isReportQuery(p)) { fetchReport(p); return; }
+  flyToQuery(p);
+  if (!socket || socket.readyState!==WebSocket.OPEN) return;
+  showLoad(true, `Fetching: ${p}`);
+  socket.send(JSON.stringify({type:'query', prompt:p}));
+  setTimeout(()=>showLoad(false), 9000);
+}
+document.getElementById('q-input').addEventListener('keypress', e=>{
+  if (e.key==='Enter') submitQuery();
+});
+
+// ═══════════════════════════════════════════════════════════
+// ARIA INTELLIGENCE PANEL
+// ═══════════════════════════════════════════════════════════
+function _now() {
+  return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+function appendARIA(role, contentHtml, titleText) {
+  const feed = document.getElementById('aria-feed');
+  const el   = document.createElement('div');
+  el.className = `af-item ${role}`;
+
+  if (role==='user') {
+    el.innerHTML = `
+      <div class="af-hdr">
+        <span class="af-icon user">→</span>
+        <span class="af-title user">${titleText||''}</span>
+      </div>
+      <div class="af-ts">You · ${_now()}</div>`;
+  } else if (role==='offline') {
+    el.innerHTML = `
+      <div class="af-hdr">
+        <span class="af-icon">⬡</span>
+        <span class="af-title">ARIA Intelligence</span>
+      </div>
+      <div class="af-ts">ARIA · ${_now()}</div>
+      <div class="af-body">${contentHtml}</div>`;
+  } else {
+    el.innerHTML = `
+      <div class="af-hdr">
+        <span class="af-icon">⬡</span>
+        <span class="af-title">${titleText||'ARIA Intelligence Analysis'}</span>
+      </div>
+      <div class="af-ts">ARIA · ${_now()}</div>
+      <div class="af-body">${contentHtml}</div>`;
+  }
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function showTypingARIA() {
+  const feed = document.getElementById('aria-feed');
+  const el   = document.createElement('div');
+  el.id = 'aria-typing'; el.className = 'af-typing';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+function hideTypingARIA() { document.getElementById('aria-typing')?.remove(); }
+
+function _fmtAria(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<span class="ab">$1</span>')
+    .replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+function clearARIA() {
+  document.getElementById('aria-feed').innerHTML = '';
+  appendARIA('aria', 'Intelligence systems online. Query any domain — maritime, conflict, cyber, weather, trade — and I\'ll provide precision analysis while the map responds.', 'ARIA Intelligence');
+}
+
+async function sendChat() {
+  const input = document.getElementById('aria-input');
+  const btn   = document.getElementById('aria-send');
+  const text  = input.value.trim();
+  if (!text || btn.disabled) return;
+
+  input.value = '';
+  btn.classList.remove('show');
+  btn.disabled = true;
+
+  appendARIA('user', '', text);
+
+  // Tactical report intent — open dashboard overlay
+  if (isReportQuery(text)) {
+    appendARIA('aria',
+      '<span class="ab">ARIA</span> is generating a tactical intelligence report. The dashboard is populating now…',
+      'GENERATING TACTICAL REPORT');
+    btn.disabled = false;
+    document.getElementById('aria-input').focus();
+    fetchReport(text);
+    return;
+  }
+
+  // Fire map query simultaneously
+  flyToQuery(text);
+  if (socket && socket.readyState===WebSocket.OPEN) {
+    showLoad(true, `Fetching: ${text}`);
+    socket.send(JSON.stringify({type:'query', prompt:text}));
+    setTimeout(()=>showLoad(false), 9000);
+  }
+
+  showTypingARIA();
+  try {
+    const res  = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text}),
+    });
+    const data = await res.json();
+    hideTypingARIA();
+    // Draw on map if ARIA returned map actions
+    if (data.map) applyARIAMapAction(data.map);
+    const title = text.length>55 ? text.slice(0,52)+'…' : text;
+    const role  = data.ok===false ? 'offline' : 'aria';
+    appendARIA(role, _fmtAria(data.reply||'No intelligence available.'),
+      role==='aria' ? `ARIA · ${title.toUpperCase()}` : 'ARIA OFFLINE');
+  } catch(err) {
+    hideTypingARIA();
+    appendARIA('offline', 'Connection to intelligence systems lost. Check network status.');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('aria-input').focus();
+  }
+}
+
+// ARIA input listeners
+document.getElementById('aria-input').addEventListener('keypress', e=>{
+  if (e.key==='Enter') sendChat();
+});
+document.getElementById('aria-input').addEventListener('input', e=>{
+  const btn = document.getElementById('aria-send');
+  btn.classList.toggle('show', e.target.value.trim().length>0);
+});
+
+// ═══════════════════════════════════════════════════════════
+// ARIA MAP CONTROL — ARIA is the artist, map is the canvas
+// ═══════════════════════════════════════════════════════════
+const _ariaMapLayers = [];
+
+function clearARIAMap() {
+  _ariaMapLayers.forEach(l => {
+    if (l._interval) clearInterval(l._interval);
+    try { map.removeLayer(l); } catch(e){}
+  });
+  _ariaMapLayers.length = 0;
+}
+
+function _ariaMarkerIcon(label, color) {
+  const c = color || '#00ff66';
+  return L.divIcon({
+    className:'',
+    html:`<div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:10px;height:10px;border-radius:50%;background:${c};
+        border:1.5px solid ${c}dd;
+        box-shadow:0 0 8px ${c},0 0 20px ${c}55;"></div>
+      <div style="margin-top:5px;background:rgba(7,10,14,0.92);border:1px solid ${c};
+        border-radius:2px;padding:1px 7px;white-space:nowrap;
+        font-family:'JetBrains Mono',monospace;font-size:.56rem;color:${c};
+        box-shadow:0 0 6px ${c}33;">${label}</div>
+    </div>`,
+    iconSize:[10,10], iconAnchor:[5,5],
+  });
+}
+
+function _ariaWeatherIcon(temp, condition) {
+  const isSev=/Thunder|Violent|Hail/i.test(condition);
+  const isRain=/Rain|Drizzle|Shower/i.test(condition);
+  const isSnow=/Snow|Freez/i.test(condition);
+  const isFog=/Fog/i.test(condition);
+  const c = isSev?'#ff4444':isRain?'#1e88e5':isSnow?'#7c4dff':isFog?'#8b9dc3':'#ffd600';
+  const cond = condition && condition !== 'Unknown' ? `<div style="font-size:.48rem;opacity:.75;margin-top:1px;">${condition}</div>` : '';
+  return L.divIcon({
+    className:'',
+    html:`<div style="background:rgba(7,10,14,.95);border:1px solid ${c};border-radius:3px;
+      padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;
+      color:${c};white-space:nowrap;box-shadow:0 0 10px ${c}55;line-height:1.4;text-align:center;">${temp}${cond}</div>`,
+    iconSize:[60,cond?30:18], iconAnchor:[30,cond?15:9],
+  });
+}
+
+function applyARIAMapAction(mapAction) {
+  if (!mapAction) return;
+  clearARIAMap();
+
+  // Fly to location
+  if (mapAction.flyto) {
+    const {lat, lon, zoom} = mapAction.flyto;
+    if (lat != null && lon != null)
+      map.flyTo([lat, lon], zoom || 9, {duration:1.8, easeLinearity:0.25});
+  }
+
+  // Place markers
+  (mapAction.markers || []).forEach(m => {
+    if (m.lat == null || m.lon == null) return;
+    const icon = _ariaMarkerIcon(m.label || '', m.color || '#00ff66');
+    const mk = L.marker([m.lat, m.lon], {icon, title: m.label || ''});
+    if (m.info) {
+      mk.bindPopup(`<strong style="color:${m.color||'#00ff66'}">${m.label||''}</strong><br>${m.info}`,
+        {maxWidth:240});
+    }
+    mk.addTo(map);
+    _ariaMapLayers.push(mk);
+  });
+
+  // Draw routes — geodesic great-circle paths via Turf.js
+  (mapAction.routes || []).forEach(r => {
+    if (!r.points || r.points.length < 2) return;
+    const col = r.color || '#00ff66';
+
+    // Build geodesic path: interpolate great-circle segments between each waypoint
+    const geodesicPoints = [];
+    for (let i = 0; i < r.points.length - 1; i++) {
+      const from = turf.point([r.points[i][1], r.points[i][0]]);
+      const to   = turf.point([r.points[i+1][1], r.points[i+1][0]]);
+      try {
+        const gc = turf.greatCircle(from, to, {npoints: 20});
+        const coords = gc.geometry.type === 'LineString'
+          ? gc.geometry.coordinates
+          : gc.geometry.coordinates[0];
+        coords.forEach(c => geodesicPoints.push([c[1], c[0]]));
+      } catch(e) {
+        geodesicPoints.push(r.points[i]);
+      }
+    }
+    geodesicPoints.push(r.points[r.points.length - 1]);
+
+    // Glow layer
+    const glow = L.polyline(geodesicPoints, {
+      color: col, weight: (r.width || 2) + 4, opacity: 0.15, interactive: false,
+    }).addTo(map);
+    _ariaMapLayers.push(glow);
+
+    // Main line
+    const line = L.polyline(geodesicPoints, {
+      color: col, weight: r.width || 2, opacity: 0.88,
+    });
+    if (r.label) line.bindTooltip(r.label, {sticky: true});
+    line.addTo(map);
+    _ariaMapLayers.push(line);
+
+    // Label at midpoint
+    if (r.label && geodesicPoints.length > 0) {
+      const midPt = geodesicPoints[Math.floor(geodesicPoints.length / 2)];
+      const lblIcon = L.divIcon({
+        className:'',
+        html:`<div style="background:rgba(7,10,14,0.9);border:1px solid ${col};
+          border-radius:2px;padding:1px 7px;font-family:'JetBrains Mono',monospace;
+          font-size:.54rem;color:${col};white-space:nowrap;
+          box-shadow:0 0 6px ${col}33;">${r.label}</div>`,
+        iconSize:[0,0], iconAnchor:[0,0],
+      });
+      _ariaMapLayers.push(L.marker(midPt, {icon:lblIcon, interactive:false}).addTo(map));
+    }
+
+    // Animated dot traversing the geodesic path
+    const dotIcon = L.divIcon({
+      className:'',
+      html:`<div style="width:7px;height:7px;border-radius:50%;background:${col};
+        box-shadow:0 0 10px ${col},0 0 20px ${col}66;"></div>`,
+      iconSize:[7,7], iconAnchor:[3,3],
+    });
+    let dotIdx = 0;
+    const dot = L.marker(geodesicPoints[0], {icon:dotIcon, interactive:false, zIndexOffset:100});
+    dot.addTo(map);
+    _ariaMapLayers.push(dot);
+    const interval = setInterval(()=>{
+      if (!_ariaMapLayers.includes(dot)) { clearInterval(interval); return; }
+      dotIdx = (dotIdx + 1) % geodesicPoints.length;
+      dot.setLatLng(geodesicPoints[dotIdx]);
+    }, 80);
+    dot._interval = interval;
+  });
+
+  // Directional sectors — radar cones, coverage wedges, threat arcs
+  (mapAction.sectors || []).forEach(s => {
+    if (s.lat == null || s.lon == null) return;
+    const col = s.color || '#ff3333';
+    const center   = turf.point([s.lon, s.lat]);
+    const radiusKm = (s.radius_km || s.radius || 200);
+    const bear1    = s.bearing_start ?? 0;
+    const bear2    = s.bearing_end   ?? 360;
+    try {
+      const sector = turf.sector(center, radiusKm, bear1, bear2,
+        {units:'kilometers', steps: 72});
+      const poly = L.geoJSON(sector, {
+        style: {
+          color: col, weight: 1.5, opacity: 0.85,
+          fillColor: col, fillOpacity: 0.1,
+          dashArray: '5 3',
+        },
+      });
+      if (s.label) poly.bindTooltip(s.label, {sticky: true});
+      poly.addTo(map);
+      _ariaMapLayers.push(poly);
+      // Center marker
+      const cIcon = L.divIcon({
+        className:'',
+        html:`<div style="width:8px;height:8px;border-radius:50%;background:${col};
+          box-shadow:0 0 10px ${col};border:1px solid ${col}cc;"></div>`,
+        iconSize:[8,8], iconAnchor:[4,4],
+      });
+      _ariaMapLayers.push(L.marker([s.lat, s.lon], {icon:cIcon, interactive:false}).addTo(map));
+    } catch(e) { console.warn('Sector render error:', e); }
+  });
+
+  // Weather / temperature badges
+  (mapAction.weather_markers || []).forEach(w => {
+    if (w.lat == null || w.lon == null) return;
+    const icon = _ariaWeatherIcon(w.temp || '?°', w.condition || '');
+    const mk = L.marker([w.lat, w.lon], {icon, title: w.label || ''});
+    mk.bindTooltip(`${w.label||''} · ${w.temp||''} · ${w.condition||''}`, {sticky:true});
+    mk.addTo(map);
+    _ariaMapLayers.push(mk);
+  });
+
+  // Area circles
+  (mapAction.circles || []).forEach(c => {
+    if (c.lat == null || c.lon == null) return;
+    const circle = L.circle([c.lat, c.lon], {
+      radius: c.radius || 50000,
+      color: c.color || '#ff3333',
+      fillColor: c.color || '#ff3333',
+      fillOpacity: 0.07,
+      weight: 1.5,
+      dashArray: '6 4',
+    });
+    if (c.label) circle.bindTooltip(c.label, {sticky:true});
+    circle.addTo(map);
+    _ariaMapLayers.push(circle);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// TACTICAL REPORT
+// ═══════════════════════════════════════════════════════════
+const REPORT_RE = /\b(report|analysis|analyse|analyze|assess|assessment|brief|briefing|prepare|overview|situation|summary|dashboard)\b/i;
+const _rptCharts = {};
+
+function isReportQuery(text) { return REPORT_RE.test(text); }
+
+function closeReport() {
+  const ov = document.getElementById('rpt-overlay');
+  ov.style.display = 'none';
+  Object.values(_rptCharts).forEach(c => { try { c.destroy(); } catch(e){} });
+  Object.keys(_rptCharts).forEach(k => delete _rptCharts[k]);
+}
+
+function _sevColor(s) {
+  return s==='HIGH'?'#ff3333':s==='MEDIUM'?'#ffb800':'#6b7280';
+}
+function _statusColor(s) {
+  return s==='critical'?'#ff3333':s==='warning'?'#ffb800':'#00ff66';
+}
+
+async function fetchReport(query) {
+  const ov = document.getElementById('rpt-overlay');
+  ov.style.display = 'flex';
+  document.getElementById('rpt-loading').style.display = 'flex';
+  document.getElementById('rpt-content').style.display = 'none';
+  document.getElementById('rpt-title').textContent = 'GENERATING INTELLIGENCE REPORT…';
+  document.getElementById('rpt-meta').textContent = 'ARIA is processing your request — Gemini AI';
+
+  // Destroy stale chart instances
+  Object.values(_rptCharts).forEach(c => { try { c.destroy(); } catch(e){} });
+  Object.keys(_rptCharts).forEach(k => delete _rptCharts[k]);
+
+  try {
+    const res = await fetch('/api/report', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query}),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const json = await res.json();
+    if (!json.ok) throw new Error('Report generation failed');
+    renderReport(json.data, query);
+  } catch(err) {
+    document.getElementById('rpt-loading').innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;color:var(--danger)">⚠</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--danger);">REPORT GENERATION FAILED</div>
+        <div style="font-size:.6rem;color:var(--muted-fg);margin-top:8px;">${err.message}</div>
+        <button onclick="closeReport()" style="margin-top:18px;padding:7px 22px;background:transparent;border:1px solid var(--border);border-radius:2px;color:var(--muted-fg);font-family:'JetBrains Mono',monospace;font-size:.6rem;cursor:pointer;">CLOSE</button>
+      </div>`;
+  }
+}
+
+function renderReport(data, query) {
+  document.getElementById('rpt-loading').style.display = 'none';
+  document.getElementById('rpt-content').style.display = 'block';
+
+  document.getElementById('rpt-title').textContent = (data.topic || query).toUpperCase();
+  document.getElementById('rpt-meta').textContent =
+    `${data.region||''} · ARIA INTELLIGENCE · ${new Date().toUTCString().slice(0,25).toUpperCase()} UTC`;
+
+  if (data.flyto) flyToQuery(data.flyto);
+
+  // KPI cards
+  document.getElementById('rpt-kpis').innerHTML = (data.kpis||[]).map(k=>`
+    <div class="rpt-kpi">
+      <div class="rpt-kpi-label">${k.label||''}</div>
+      <div class="rpt-kpi-value" style="color:${_statusColor(k.status)}">${k.value||'—'}</div>
+      <div class="rpt-kpi-delta" style="color:${_statusColor(k.status)}">${k.delta||''}</div>
+    </div>`).join('');
+
+  // Chart global defaults
+  Chart.defaults.color = '#6b7280';
+  Chart.defaults.font  = {family:"'JetBrains Mono', monospace", size:10};
+  const gridColor = 'rgba(31,41,61,0.6)';
+
+  // Activity Timeline (area)
+  const act = data.activity_timeline || {labels:[],series:[]};
+  const actColors = ['#00ff66','#00bfff','#ffb800'];
+  _rptCharts.activity = new Chart(document.getElementById('c-activity'), {
+    type:'line',
+    data:{
+      labels: act.labels,
+      datasets: (act.series||[]).map((s,i)=>({
+        label:s.name, data:s.data,
+        borderColor: actColors[i%actColors.length],
+        backgroundColor: actColors[i%actColors.length]+'18',
+        borderWidth:1.5, fill:true, tension:0.4,
+        pointRadius:2.5, pointBackgroundColor:actColors[i%actColors.length],
+      })),
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:8,font:{size:9}}}},
+      scales:{
+        x:{grid:{color:gridColor},ticks:{maxRotation:0,font:{size:9}}},
+        y:{grid:{color:gridColor},beginAtZero:true},
+      },
+    },
+  });
+
+  // Threat Distribution (bar)
+  const thr = data.threat_distribution || {labels:[],values:[]};
+  const thrBg = ['#ff333844','#ffb80044','#00ff6644','#00bfff44','#7c4dff44'];
+  const thrBd = ['#ff3338','#ffb800','#00ff66','#00bfff','#7c4dff'];
+  _rptCharts.threat = new Chart(document.getElementById('c-threat'), {
+    type:'bar',
+    data:{
+      labels: thr.labels,
+      datasets:[{
+        label:'', data:thr.values,
+        backgroundColor: thr.labels.map((_,i)=>thrBg[i%thrBg.length]),
+        borderColor:     thr.labels.map((_,i)=>thrBd[i%thrBd.length]),
+        borderWidth:1,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:gridColor},ticks:{font:{size:9}}},
+        y:{grid:{color:gridColor},beginAtZero:true},
+      },
+    },
+  });
+
+  // Signal Metrics (line)
+  const sig = data.signal_metrics || {labels:[],series:[]};
+  const sigColors = ['#e91e63','#7c4dff'];
+  _rptCharts.signals = new Chart(document.getElementById('c-signals'), {
+    type:'line',
+    data:{
+      labels: sig.labels,
+      datasets: (sig.series||[]).map((s,i)=>({
+        label:s.name, data:s.data,
+        borderColor: sigColors[i%sigColors.length],
+        backgroundColor:'transparent',
+        borderWidth:1.5, tension:0.35,
+        pointRadius:2, pointBackgroundColor:sigColors[i%sigColors.length],
+      })),
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:8,font:{size:9}}}},
+      scales:{
+        x:{grid:{color:gridColor}},
+        y:{grid:{color:gridColor},beginAtZero:true},
+      },
+    },
+  });
+
+  // Entity Breakdown (doughnut)
+  const ent = data.entity_breakdown || {labels:[],values:[]};
+  const entBg = ['#00ff6640','#00bfff40','#ffb80040','#ff333340','#7c4dff40'];
+  const entBd = ['#00ff66','#00bfff','#ffb800','#ff3333','#7c4dff'];
+  _rptCharts.entities = new Chart(document.getElementById('c-entities'), {
+    type:'doughnut',
+    data:{
+      labels: ent.labels,
+      datasets:[{
+        data: ent.values,
+        backgroundColor: ent.labels.map((_,i)=>entBg[i%entBg.length]),
+        borderColor:     ent.labels.map((_,i)=>entBd[i%entBd.length]),
+        borderWidth:1.5,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:9},padding:6}}},
+    },
+  });
+
+  // System Status (progress bars)
+  document.getElementById('rpt-status').innerHTML = (data.system_status||[]).map(s=>{
+    const pct = Math.min(100,Math.max(0,s.value||0));
+    const col = pct>=70?'#00ff66':pct>=45?'#ffb800':'#ff3333';
+    return `<div class="rpt-prog-row">
+      <div class="rpt-prog-label">${s.label||''}</div>
+      <div class="rpt-prog-bar-bg">
+        <div class="rpt-prog-bar-fill" style="width:${pct}%;background:${col};box-shadow:0 0 5px ${col}44;"></div>
+      </div>
+      <div class="rpt-prog-val" style="color:${col}">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Event Log
+  document.getElementById('rpt-event-rows').innerHTML = (data.event_log||[]).map(ev=>`
+    <tr class="rpt-ev-row">
+      <td class="rpt-ev-time">${ev.time||''}</td>
+      <td class="rpt-ev-event">${ev.event||''}</td>
+      <td class="rpt-ev-domain">${ev.domain||''}</td>
+      <td class="rpt-ev-sev" style="color:${_sevColor(ev.severity)}">${ev.severity||''}</td>
+    </tr>`).join('');
+
+  // Intel items
+  document.getElementById('rpt-intel-items').innerHTML = (data.intel_items||[]).map(item=>`
+    <div class="rpt-intel-card">
+      <div class="rpt-intel-card-title">${item.title||''}</div>
+      <div class="rpt-intel-card-body">${item.content||''}</div>
+    </div>`).join('');
+
+  // Intel summary
+  document.getElementById('rpt-intel-summary').textContent = data.intel_summary||'';
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════
+function animLoop(){ tradeC.draw(); requestAnimationFrame(animLoop); }
+
+// ═══════════════════════════════════════════════════════════
+// BOOT SEQUENCE
+// ═══════════════════════════════════════════════════════════
+buildDomainUI();
+clearARIA(); // seeds welcome message in ARIA feed
+animLoop();
+connectWS();
+
+// Dismiss E9 loader after 2.5s
+setTimeout(()=>{
+  document.getElementById('e9-loader').classList.add('hidden');
+  setTimeout(()=>{
+    document.getElementById('e9-loader').remove();
+    map.invalidateSize();
+  }, 520);
+}, 2500);
+</script>
+</body>
+</html>
